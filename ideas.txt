@@ -1,0 +1,37 @@
+TODO:
+Next time:
+- implement clustering
+*****
+- do clusterings from nlp project, basically i guess this will be enough to report something, and then
+try to find interesting things in the clustering analysis
+
+
+QUESTIONS:
+how to deal with multi-word phrases in cosine similarity when dealing with non-word elements (ie event
+triggers or named entities)? -> can a term_set of common bi or trigrams be a thing?
+
+
+IDEAS:
+do statistical correlation type analysis to see if kl/cos_sim using subsets of the document template
+correlate to the relationsip the topics or subtopics have with each other (ie. someone checking into rehab
+or a bomb going off somewhere or elections -> these things implying a relationship hypothetically
+mostly captured by some subset of the document template)
+dataset analysis:
+inter-cluster similarity (and visualization) among subtopics and subtopics, and generally
+
+
+clustering features:
+event gold
+within-doc gold event coreference chains
+srl predicates
+within-doc srl coreference chains
+raw text
+~~ ideas:
+major mentions
+
+##
+{
+"ACTION" : [],
+"LOCATION" : [],
+...
+}
