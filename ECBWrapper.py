@@ -5,6 +5,9 @@ import nltk
 from nltk.corpus import wordnet,stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 import re
+#import pywsd
+#from pywsd.lesk import cosine_lesk,adapted_lesk
+import sys
 
 '''
 Wrapper for the ECB+ corpus. 
@@ -33,6 +36,61 @@ class ECBWrapper():
                             self.all_files.append(join(root, f))
                     else:
                         self.all_files.append(join(root, f))
+
+    def make_data_for_clustering(self, option, sub_topics=False):
+        documents = []
+        targets = []
+        if not sub_topics:
+            files_by_topic = dict()
+            topic_nums = range(1, 46)
+            # get all files in all topics, partitioned by suptopic
+            for i in topic_nums:
+                if i not in [15, 17]:
+                    # get all files in topic i
+                    for f in self.get_topic(topic=i):
+                        if option == 'doc_template':
+                            # this returns a list, so converting to string
+                            documents.append(' '.join(self.get_text(f,'doc_template')))
+                            targets.append(str(i))
+                        elif option == 'text':
+                            documents.append(self.get_text(f))
+                            targets.append(str(i))
+                        elif option == 'event_trigger':
+                            # this returns a list, so converting to string
+                            documents.append(' '.join(self.get_text(f, 'event_trigger')))
+                            targets.append(str(i))
+
+                        else:
+                            print('unknown option')
+                            sys.err(-1)
+        else:
+            files_by_topic = dict()
+            topic_nums = range(1, 46)
+            # get all files in all topics, partitioned by suptopic
+            for i in topic_nums:
+                if i not in [15, 17]:
+                    files_by_topic[str(i) + "_" + '1'] = []
+                    files_by_topic[str(i) + "_" + '2'] = []
+                    # get all files in topic i
+                    for f in self.get_topic(topic=i):
+                        if option == 'doc_template':
+                            #this returns a list, so converting to string
+                            top = self.get_topic_num(f)
+                            documents.append(' '.join(self.get_text(f,'doc_template')))
+                            targets.append(top[0] + "_" +  top[1])
+                        elif option == 'text':
+                            top = self.get_topic_num(f)
+                            documents.append(self.get_text(f))
+                            targets.append(top[0] + "_" +  top[1])
+                        elif option == 'event_trigger':
+                            # this returns a list, so converting to string
+                            documents.append(' '.join(self.get_text(f, 'event_trigger')))
+                            top = self.get_topic_num(f)
+                            targets.append(top[0] + "_" +  top[1])
+                        else:
+                            print('unknown option')
+                            sys.err(-1)
+        return (documents,targets)
 
     '''
     Gives all paths in a given topic, sub-topic. 
@@ -67,7 +125,7 @@ class ECBWrapper():
     Gives files for a subset of topics (includes sub-topic in a dictionary)
     
         input: 
-        - topics: list to subset topics
+        - topics: list to subset topics (if None it gives all topics)
         
         output: 
         - dictionary of dictionaries, where the first level key = topic, first level value = dict of 
@@ -236,6 +294,119 @@ class ECBWrapper():
         return lemmas
 
     '''
+    Adds attributes to the ECB+ tokens
+    
+        input:
+        - path: path of the file you want to augment
+        - output_dir: where you want to store augmented file. file name will be existingName_aug.xml
+        
+        output: 
+        - an edited ECB+ file, adding the following attributes to each token: 
+            * event_type: ACTION_OCCURRENCE, etc., if token is part of a mention, '' if N/A
+            * multi_token: span if event element is multi-token, as "k,...,n", '' if N/A
+            * ev_id: ie. ACT234832941, corresponding to the ECB+ event id, '' if N/A
+            * pos
+            * lemma
+            * wordnet_id
+            * dbPedia_id
+    '''
+    def augment_ecb_tokens(self,path,output_dir):
+        tree = ET.parse(path)
+        root = tree.getroot()
+        root.set('doc_name', root.attrib['doc_name'].replace('.xml', '_aug.xml'))
+        augs = ET.SubElement(root,"Augmented_Tokens")
+
+        lemmatizer = WordNetLemmatizer()
+        #for all sentences
+        for sent_num, tokens in self.get_all_sentences(path).items():
+            #ecb+ is already tokenized
+            pos_tag = nltk.pos_tag([t.text for t in tokens])
+            context = [lemmatizer.lemmatize(tag[0],self.get_wordnet_pos(tag[1])) for tag in pos_tag]
+            #for all tokens
+            for i in range(len(pos_tag)):
+                #lemma
+                lemma = lemmatizer.lemmatize(pos_tag[i][0],self.get_wordnet_pos(pos_tag[i][1]).lower())
+
+                #synset assignment
+                syn = adapted_lesk(' '.join(context), ambiguous_word=tokens[i].text, pos=pos_tag[i][1],
+                                   context_is_lemmatized=True)
+                wordnet_id = ''
+                if not syn is None:
+                    wordnet_id = syn.name()
+
+                #get event info
+                ev_info = self.get_event_info(path,tokens[i].attrib['t_id'])
+                ev_type = ev_id = ''
+                if not ev_info is None:
+                    ev_type = ev_info[0]
+                    ev_id = ev_info[1]
+
+
+                #set attributes
+                tokens[i].set('ev_type', ev_type)
+                tokens[i].set('ev_id', ev_id)
+                tokens[i].set('treebank_pos',pos_tag[i][1])
+                tokens[i].set('lemma',lemma)
+                tokens[i].set('wordnet_id',wordnet_id)
+                tokens[i].set('m_id',self.get_mention_id(path,tokens[i].attrib['t_id']))
+                #tokens[i].set('dbPedia_id','')
+                augs.append(tokens[i])
+
+        tree.write(output_dir + '/' + root.attrib['doc_name'])
+    '''
+    Get event type and event id for a given t_id
+        input:
+            - path: path of the file you want to investigate
+            - t_id: t_id of the token you want the m_id of
+        output:
+            - (ev_type,ev_id) tuple for given t_id in path
+    '''
+    def get_event_info(self,path,t_id):
+        tree = ET.parse(path)
+        root = tree.getroot()
+        for markables in root.findall('Markables'):
+            for event_element in markables:
+                tags = [c.tag for c in event_element]
+                if 'token_anchor' in tags:
+                    m_id = event_element.attrib['m_id']
+                    ev_type = event_element.tag
+                    t_ids = [c.attrib['t_id'] for c in event_element]
+                    #found the mention
+                    if t_id in t_ids:
+                        for relations in root.findall('Relations'):
+                            for coref in relations:
+                                m_ids = [s.attrib['m_id'] for s in coref.findall('source')]
+                                #found ev_id
+                                if m_id in m_ids:
+                                    if'CROSS_DOC' in coref.tag:
+                                        ev_id = coref.attrib['note']
+                                        return (ev_type,ev_id)
+    '''
+    Returns the mention id (m_id) of the given token in the given document
+        
+        input:
+            - path: path of the file you want to investigate
+            - t_id: t_id of the token you want the m_id of
+        output:
+            - the m_id of the given t_id in documnent at path
+        
+    '''
+    def get_mention_id(self,path,t_id):
+        tree = ET.parse(path)
+        root = tree.getroot()
+        for markables in root.findall('Markables'):
+            for event_element in markables:
+                tags = [c.tag for c in event_element]
+                if 'token_anchor' in tags:
+                    m_id = event_element.attrib['m_id']
+                    ev_type = event_element.tag
+                    t_ids = [c.attrib['t_id'] for c in event_element]
+                    #found the mention
+                    if t_id in t_ids:
+                        return m_id
+        return ''
+
+    '''
     Maps a Treebank tag to a Wordnet tag
 
         input: 
@@ -253,6 +424,7 @@ class ECBWrapper():
             return wordnet.NOUN
         elif treebank_tag.startswith('R'):
             return wordnet.ADV
+        #default to noun
         else:
             return wordnet.NOUN
 
