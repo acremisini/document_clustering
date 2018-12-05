@@ -2,9 +2,9 @@ from scipy import stats, spatial
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
-from Clustering_Utility import Clustering_Utility
+from code.Clustering_Utility import Clustering_Utility
 import sys
-from sklearn.metrics.pairwise import cosine_similarity
+
 
 class SimilarityMetrics():
 
@@ -133,7 +133,7 @@ class SimilarityMetrics():
                                   '2': {'kl': [], 'cosine': [], 'num_files': 0}}
 
             j = 0
-            print('commputing topic ' + str(topic) + '...')
+            print('computing topic ' + str(topic) + '...')
             file_pairs = utils.unique_pairwise_no_diagonal(topic_files['1'] + topic_files['2'])
             #across both subtopics
             for p in file_pairs:

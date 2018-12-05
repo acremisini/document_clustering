@@ -1,14 +1,10 @@
-from ECBWrapper import ECBWrapper
-from SimilarityMetrics import SimilarityMetrics
-import Globals
-from CorpusVectorizer import CorpusVectorizer
-from DimensionalityReducer import DimensionalityReducer
-from K_Means import K_Means
+from code.ECBWrapper import ECBWrapper
+from code import Globals
+from code.CorpusVectorizer import CorpusVectorizer
+from code.K_Means import K_Means
 from scipy import stats
-from sklearn.cluster import AffinityPropagation, MeanShift,SpectralClustering, AgglomerativeClustering,DBSCAN,Birch
-from sklearn.mixture import GaussianMixture
+from sklearn.cluster import AffinityPropagation, SpectralClustering, Birch
 from sklearn import metrics
-import math
 import sys
 from time import time
 import pandas as pd
@@ -26,7 +22,7 @@ element_types = {0 : 'event_trigger',
                  10 : 'text'}
 
 #wrapper for the ecb+ dataset
-ecb_wrapper = ECBWrapper(Globals.ECB_DIR, topics=None,lemmatize=True)
+ecb_wrapper = ECBWrapper(Globals.ECB_DIR, topics=None, lemmatize=True)
 
 '''
 Step 1: 
@@ -35,8 +31,8 @@ Make 2 representations of the ECB+ corpus by representing the documents using:
             1. event template information
             2. raw text 
 '''
-datasets = {'Event_Template': ecb_wrapper.make_data_for_clustering(option=element_types[1], sub_topics=True),
-            'Raw_Text': ecb_wrapper.make_data_for_clustering(option=element_types[10], sub_topics=True)
+datasets = {'Event_Template': ecb_wrapper.make_data_for_clustering(option=element_types[1], sub_topics=False),
+            'Raw_Text': ecb_wrapper.make_data_for_clustering(option=element_types[10], sub_topics=False)
             }
 '''
 Step 2: 
@@ -61,7 +57,7 @@ while repetitions > 0:
         Get corpus ready for scikit
         '''
         corpus = CorpusVectorizer(data)
-        corpus.vectorize(data, use_idf = True, n_features = 10000)
+        corpus.vectorize(data, use_idf = False, n_features = 10000)
         # dim_reducer = DimensionalityReducer()
         # dim_reducer.lsa_reduce(corpus.X,n_components=10)
         dim_reducer = None
@@ -161,101 +157,101 @@ while repetitions > 0:
         5. Agglomerative Clustering (Ward Linkage)
 
         '''
-        t0 = time()
-        ### cluster
-        clustering_obj = AgglomerativeClustering(linkage='ward').fit(corpus.X.toarray())
-        ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
-        ### record results
-        algorithm = 'Agglomerative-Clustering_Ward-Linkage'
-        algorithms.append(algorithm)
-        print(algorithm + ' done in %0.3fs' % (time() - t0))
-        # ari
-        if algorithm not in ari_results:
-            ari_results[algorithm] = dict()
-        if representation not in ari_results[algorithm]:
-            ari_results[algorithm][representation] = []
-        ari_results[algorithm][representation].append(ari)
+        # t0 = time()
+        # ### cluster
+        # clustering_obj = AgglomerativeClustering(linkage='ward').fit(corpus.X.toarray())
+        # ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
+        # ### record results
+        # algorithm = 'Agglomerative-Clustering_Ward-Linkage'
+        # algorithms.append(algorithm)
+        # print(algorithm + ' done in %0.3fs' % (time() - t0))
+        # # ari
+        # if algorithm not in ari_results:
+        #     ari_results[algorithm] = dict()
+        # if representation not in ari_results[algorithm]:
+        #     ari_results[algorithm][representation] = []
+        # ari_results[algorithm][representation].append(ari)
 
         '''
         6. Agglomerative Clustering (Complete Linkage)
 
         '''
-        t0 = time()
-        ### cluster
-        clustering_obj = AgglomerativeClustering(linkage='ward').fit(corpus.X.toarray())
-        ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
-        ### record results
-        algorithm = 'Agglomerative-Clustering_Complete-Linkage'
-        algorithms.append(algorithm)
-        print(algorithm + ' done in %0.3fs' % (time() - t0))
-        # ari
-        if algorithm not in ari_results:
-            ari_results[algorithm] = dict()
-        if representation not in ari_results[algorithm]:
-            ari_results[algorithm][representation] = []
-        ari_results[algorithm][representation].append(ari)
+        # t0 = time()
+        # ### cluster
+        # clustering_obj = AgglomerativeClustering(linkage='ward').fit(corpus.X.toarray())
+        # ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
+        # ### record results
+        # algorithm = 'Agglomerative-Clustering_Complete-Linkage'
+        # algorithms.append(algorithm)
+        # print(algorithm + ' done in %0.3fs' % (time() - t0))
+        # # ari
+        # if algorithm not in ari_results:
+        #     ari_results[algorithm] = dict()
+        # if representation not in ari_results[algorithm]:
+        #     ari_results[algorithm][representation] = []
+        # ari_results[algorithm][representation].append(ari)
 
         '''
         7. Agglomerative Clustering (Average Linkage)
         '''
-        t0 = time()
-        ### cluster
-        clustering_obj = AgglomerativeClustering(linkage='ward').fit(corpus.X.toarray())
-        ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
-        ### record results
-        algorithm = 'Agglomerative-Clustering_Average-Linkage'
-        algorithms.append(algorithm)
-        print(algorithm + ' done in %0.3fs' % (time() - t0))
-        # ari
-        if algorithm not in ari_results:
-            ari_results[algorithm] = dict()
-        if representation not in ari_results[algorithm]:
-            ari_results[algorithm][representation] = []
-        ari_results[algorithm][representation].append(ari)
+        # t0 = time()
+        # ### cluster
+        # clustering_obj = AgglomerativeClustering(linkage='ward').fit(corpus.X.toarray())
+        # ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
+        # ### record results
+        # algorithm = 'Agglomerative-Clustering_Average-Linkage'
+        # algorithms.append(algorithm)
+        # print(algorithm + ' done in %0.3fs' % (time() - t0))
+        # # ari
+        # if algorithm not in ari_results:
+        #     ari_results[algorithm] = dict()
+        # if representation not in ari_results[algorithm]:
+        #     ari_results[algorithm][representation] = []
+        # ari_results[algorithm][representation].append(ari)
 
 
         '''
         8. Agglomerative Clustering (Single Linkage)
         '''
-        t0 = time()
-        ### cluster
-        clustering_obj = AgglomerativeClustering(linkage='ward').fit(corpus.X.toarray())
-        ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
-        ### record results
-        algorithm = 'Agglomerative-Clustering_Single-Linkage'
-        algorithms.append(algorithm)
-        print(algorithm + ' done in %0.3fs' % (time() - t0))
-        # ari
-        if algorithm not in ari_results:
-            ari_results[algorithm] = dict()
-        if representation not in ari_results[algorithm]:
-            ari_results[algorithm][representation] = []
-        ari_results[algorithm][representation].append(ari)
+        # t0 = time()
+        # ### cluster
+        # clustering_obj = AgglomerativeClustering(linkage='ward').fit(corpus.X.toarray())
+        # ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
+        # ### record results
+        # algorithm = 'Agglomerative-Clustering_Single-Linkage'
+        # algorithms.append(algorithm)
+        # print(algorithm + ' done in %0.3fs' % (time() - t0))
+        # # ari
+        # if algorithm not in ari_results:
+        #     ari_results[algorithm] = dict()
+        # if representation not in ari_results[algorithm]:
+        #     ari_results[algorithm][representation] = []
+        # ari_results[algorithm][representation].append(ari)
 
 
         '''
         9. DBSCAN
         '''
-        t0 = time()
-        ### cluster
-        clustering_obj = DBSCAN(eps=5, min_samples=10).fit(corpus.X)
-        ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
-        #### record results
-        algorithm = 'DBSCAN'
-        algorithms.append(algorithm)
-        print(algorithm + ' done in %0.3fs' % (time() - t0))
-        # ari
-        if algorithm not in ari_results:
-            ari_results[algorithm] = dict()
-        if representation not in ari_results[algorithm]:
-            ari_results[algorithm][representation] = []
-        ari_results[algorithm][representation].append(ari)
-        # n_cluster error
-        if algorithm not in n_clusters:
-            n_clusters[algorithm] = dict()
-        if representation not in n_clusters[algorithm]:
-            n_clusters[algorithm][representation] = []
-        n_clusters[algorithm][representation].append(len(set(clustering_obj.labels_)) - len(set(corpus.Y)))
+        # t0 = time()
+        # ### cluster
+        # clustering_obj = DBSCAN(eps=5, min_samples=10).fit(corpus.X)
+        # ari = metrics.adjusted_rand_score(corpus.Y, clustering_obj.labels_)
+        # #### record results
+        # algorithm = 'DBSCAN'
+        # algorithms.append(algorithm)
+        # print(algorithm + ' done in %0.3fs' % (time() - t0))
+        # # ari
+        # if algorithm not in ari_results:
+        #     ari_results[algorithm] = dict()
+        # if representation not in ari_results[algorithm]:
+        #     ari_results[algorithm][representation] = []
+        # ari_results[algorithm][representation].append(ari)
+        # # n_cluster error
+        # if algorithm not in n_clusters:
+        #     n_clusters[algorithm] = dict()
+        # if representation not in n_clusters[algorithm]:
+        #     n_clusters[algorithm][representation] = []
+        # n_clusters[algorithm][representation].append(len(set(clustering_obj.labels_)) - len(set(corpus.Y)))
 
         '''
         10. Gaussian Mixture
@@ -293,9 +289,6 @@ while repetitions > 0:
             ari_results[algorithm][representation] = []
         ari_results[algorithm][representation].append(ari)
 
-
-    # sys.exit(0)
-
 result_table = pd.DataFrame(columns=['ARI (Raw-Text)',
                                      'ARI (Event-Template)',
                                      'Number of Clusters Error (Raw-Text)',
@@ -307,7 +300,7 @@ for alg in ari_results.keys():
                                                 'Number of Clusters Error (Event-Template)'])
     result_table = result_table.append(row)
 
-#print avg. ari results
+#record avg. ari results
 
 for alg in ari_results.keys():
     for representation in ari_results[alg]:
@@ -324,11 +317,11 @@ for alg in n_clusters.keys():
             result_table.loc[alg,'Number of Clusters Error (Event-Template)'] = "%.2f" % round(stats.describe(n_clusters[alg][representation]).mean,2)
         if 'Raw' in representation:
             result_table.loc[alg,'Number of Clusters Error (Raw-Text)'] = "%.2f" % round(stats.describe(n_clusters[alg][representation]).mean,2)
-result_table.fillna(value=-1.0,inplace=True)
+result_table.fillna(value=0.0,inplace=True)
 with pd.option_context('display.max_rows', None, 'display.max_columns', None):
     print(result_table)
 
-writer = pd.ExcelWriter('data/clustering_results_subtopics.xlsx')
+writer = pd.ExcelWriter('data/clustering_results_SubTopic.xlsx')
 result_table.to_excel(writer,'Sheet1')
 writer.save()
 

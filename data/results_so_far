@@ -1,4 +1,0 @@
-k-means, 1000 iterations (template includes everything...maybe remove time):
-template-based clustering, avg. adjusted rand-index: 0.672792306652949, std_dev: 0.04795049644326233
-event-based clustering, avg. adjusted rand-index: 0.16305793347948913, std_dev: 0.08052752158030202
-text-based clustering, avg. adjusted rand-index: 0.6732803658144983, std_dev: 0.04753120947465213
