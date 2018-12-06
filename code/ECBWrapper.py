@@ -8,6 +8,7 @@ import re
 #import pywsd
 #from pywsd.lesk import cosine_lesk,adapted_lesk
 import sys
+import code.Globals
 
 '''
 Wrapper for the ECB+ corpus. 
@@ -36,12 +37,21 @@ class ECBWrapper():
                             self.all_files.append(join(root, f))
                     else:
                         self.all_files.append(join(root, f))
+        self.annotated = dict()
+        with open(code.Globals.ECB_SENTENCE_FILE ) as f:
+            for line in f.readlines()[1:]:
 
-    def make_data_for_clustering(self, option, sub_topics=False):
+                line = line.split(',')
+                f_name = line[0] + '_' + line[1]
+                if f_name not in self.annotated:
+                    self.annotated[f_name] = []
+                self.annotated[f_name].append(line[2].replace('\n',''))
+
+
+    def make_data_for_clustering(self, option, filter=False,sub_topics=False):
         documents = []
         targets = []
         if not sub_topics:
-            files_by_topic = dict()
             topic_nums = range(1, 46)
             # get all files in all topics, partitioned by suptopic
             for i in topic_nums:
@@ -50,42 +60,29 @@ class ECBWrapper():
                     for f in self.get_topic(topic=i):
                         if option == 'doc_template':
                             # this returns a list, so converting to string
-                            documents.append(' '.join(self.get_text(f,'doc_template')))
+                            documents.append(' '.join(self.get_text(f,element_type='doc_template')))
                             targets.append(str(i))
                         elif option == 'text':
-                            documents.append(self.get_text(f))
+                            documents.append(' '.join(self.get_text(f,element_type='text',filter=filter)))
                             targets.append(str(i))
-                        elif option == 'event_trigger':
-                            # this returns a list, so converting to string
-                            documents.append(' '.join(self.get_text(f, 'event_trigger')))
-                            targets.append(str(i))
-
                         else:
                             print('unknown option')
                             sys.err(-1)
         else:
-            files_by_topic = dict()
             topic_nums = range(1, 46)
             # get all files in all topics, partitioned by suptopic
             for i in topic_nums:
                 if i not in [15, 17]:
-                    files_by_topic[str(i) + "_" + '1'] = []
-                    files_by_topic[str(i) + "_" + '2'] = []
                     # get all files in topic i
                     for f in self.get_topic(topic=i):
                         if option == 'doc_template':
                             #this returns a list, so converting to string
                             top = self.get_topic_num(f)
-                            documents.append(' '.join(self.get_text(f,'doc_template')))
+                            documents.append(' '.join(self.get_text(f,element_type='doc_template')))
                             targets.append(top[0] + "_" +  top[1])
                         elif option == 'text':
                             top = self.get_topic_num(f)
-                            documents.append(self.get_text(f))
-                            targets.append(top[0] + "_" +  top[1])
-                        elif option == 'event_trigger':
-                            # this returns a list, so converting to string
-                            documents.append(' '.join(self.get_text(f, 'event_trigger')))
-                            top = self.get_topic_num(f)
+                            documents.append(' '.join(self.get_text(f,element_type='text',filter = filter)))
                             targets.append(top[0] + "_" +  top[1])
                         else:
                             print('unknown option')
@@ -163,6 +160,7 @@ class ECBWrapper():
         sub = '2' if 'plus' in p[1] else '1'
         return (top,sub)
 
+
     '''
     Return different types of text representations of an ECB+ document 
     
@@ -179,16 +177,29 @@ class ECBWrapper():
         output: 
         - a string (if element_type=None) or list of desired types of elements
     '''
-    def get_text(self, path, element_type=None):
+    def get_text(self,path,filter=False,element_type=None):
         #text
-        if element_type is None:
-            tree = ET.parse(path)
-            root = tree.getroot()
-            if self.lemmatize:
-                lemmas = self.lemmatize_ecb_file(path)
-                return ' '.join([lemmas[token.attrib['t_id']] for token in root.findall('token')])
+        if element_type is None or element_type == 'text':
+            if filter:
+                tree = ET.parse(path)
+                root = tree.getroot()
+                if self.lemmatize:
+                    lemmas = self.lemmatize_ecb_file(path)
+                    return [lemmas[token.attrib['t_id']] for token in root.findall('token')
+                            if str(os.path.basename(path).replace('.xml','')) in self.annotated
+                            and token.attrib['sentence'] in self.annotated[str(os.path.basename(path).replace('.xml',''))] ]
+                else:
+                    return [self.only_alphanumeric(token.text) for token in root.findall('token')
+                            if str(os.path.basename(path).replace('.xml', '')) in self.annotated
+                            and token.attrib['sentence'] in self.annotated[str(os.path.basename(path).replace('.xml', ''))]]
             else:
-                return ' '.join([self.only_alphanumeric(token.text) for token in root.findall('token')])
+                tree = ET.parse(path)
+                root = tree.getroot()
+                if self.lemmatize:
+                    lemmas = self.lemmatize_ecb_file(path)
+                    return [lemmas[token.attrib['t_id']] for token in root.findall('token')]
+                else:
+                    return [self.only_alphanumeric(token.text) for token in root.findall('token')]
         #ecb+ annotations
         else:
             #this is a dictionary with a list of strings for every
@@ -381,6 +392,7 @@ class ECBWrapper():
                                     if'CROSS_DOC' in coref.tag:
                                         ev_id = coref.attrib['note']
                                         return (ev_type,ev_id)
+
     '''
     Returns the mention id (m_id) of the given token in the given document
         
@@ -509,10 +521,9 @@ class ECBWrapper():
     def compute_term_set(self):
         terms = set()
         for f in self.all_files:
-            words = self.get_text(f).lower()
-            words = filter(lambda x: x not in stopwords.words('english'), words)
+            words = self.get_text(f)
             for w in words:
-                terms.add(self.only_alphanumeric(w))
+                terms.add(self.only_alphanumeric(w.lower()))
         with open('data/ecb_term_set.txt', 'w') as f:
             for item in terms:
                 f.write("%s\n" % item)

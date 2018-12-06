@@ -4,6 +4,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 from code.Clustering_Utility import Clustering_Utility
 import sys
+import matplotlib.pyplot as plt
+from pylab import text
 
 
 class SimilarityMetrics():
@@ -13,7 +15,7 @@ class SimilarityMetrics():
         with open(term_set_path) as f:
             i = 0
             for l in f.readlines():
-                self.terms[l.strip()] = i
+                self.terms[l.replace('\n','')] = i
                 i += 1
         self.tfidf_matrix = ''
         self.vectorizer = ''
@@ -25,20 +27,15 @@ class SimilarityMetrics():
         vec = [0] * len(self.terms)
         term_i = set()
         num_words = 0
-        #text of article
-        if isinstance(txt, str):
-            for w in txt.lower():
-                if w in self.terms:
-                    vec[self.terms[w]] += 1
-                    num_words += 1
-                    term_i.add(self.terms[w])
-            for i in term_i:
-                vec[i] = vec[i] / num_words*1.0
-        #event triggers of article
         if isinstance(txt,list):
             for t in txt:
                 if t in self.terms:
-                    vec[self.terms[t]] += 1
+                    try:
+                        vec[self.terms[t]] += 1
+                    except:
+                        print(t)
+                        print(self.terms[t])
+                        sys.exit(-1)
                     num_words += 1
                     term_i.add(self.terms[t])
             for i in term_i:
@@ -73,6 +70,66 @@ class SimilarityMetrics():
             i += 1
         self.vectorizer = TfidfVectorizer()
         self.tfidf_matrix = self.vectorizer.fit_transform(self.corpus.values())
+
+    def get_word_count_stats(self,corpus,fname, title):
+        counts = pd.DataFrame({"Word Counts" : [len(doc) for doc in corpus[0]]})
+        plt.figure()
+        bp_dict = counts.boxplot(column="Word Counts",return_type='dict')
+        for line in bp_dict['medians']:
+            # get position data for median line
+            x, y = line.get_xydata()[1]  # top of median line
+            # overlay median value
+            text(x, y, counts.median()['Word Counts'],
+                 horizontalalignment='left')  # draw above, centered
+
+        plt.title(title)
+        plt.ylabel('# Words per Document')
+        plt.savefig(fname='output/'+fname)
+
+    def get_cluster_sim(self,ecb,element_type,within,fname,title):
+        # helper objects
+        utils = Clustering_Utility()
+        files_by_topic = ecb.get_files_by_topic()
+
+        sims = []
+        j = 0
+        file_pairs = utils.unique_pairwise_no_diagonal(ecb.all_files)
+        for p in file_pairs:
+            pairs = list(p)
+            if within:
+                if ecb.get_topic_num(pairs[0])[0] == ecb.get_topic_num(pairs[1])[0]:
+                    v0 = self.laplace_smooth(self.make_word_count_vector(ecb.get_text(pairs[0], element_type=element_type)))
+                    v1 = self.laplace_smooth(self.make_word_count_vector(ecb.get_text(pairs[1], element_type=element_type)))
+                    sims.append(self.cos_sim(v0, v1))
+                if (round((j * 1.0 / len(file_pairs)),2) % .05 == 0):
+                    print(str(round((j * 1.0 / len(file_pairs)), 2)) + '% ...')
+                j += 1
+            if not within:
+                if ecb.get_topic_num(pairs[0])[0] is not ecb.get_topic_num(pairs[1])[0]:
+                    v0 = self.laplace_smooth(self.make_word_count_vector(ecb.get_text(pairs[0], element_type=element_type)))
+                    v1 = self.laplace_smooth(self.make_word_count_vector(ecb.get_text(pairs[1], element_type=element_type)))
+                    sims.append(self.cos_sim(v0, v1))
+                if (round((j * 1.0 / len(file_pairs)),2) % .05 == 0):
+                    print(str(round((j * 1.0 / len(file_pairs)),2)) + '% ...')
+                j += 1
+        print('---')
+        df = pd.DataFrame({'Cosine Similarity' : sims})
+        plt.figure()
+        bp_dict = df.boxplot(column="Cosine Similarity",return_type='dict')
+        for line in bp_dict['medians']:
+            # get position data for median line
+            x, y = line.get_xydata()[1]  # top of median line
+            # overlay median value
+            text(x, y, round(df.median()['Cosine Similarity'],2),
+                 horizontalalignment='left')  # draw above, centered
+        plt.title(title)
+        plt.ylabel('Pairwise Cosine Similarity')
+        plt.autoscale()
+        plt.tight_layout()
+        plt.savefig(fname='output/'+fname)
+
+
+
 
 
     def compute_ecb_clustering_stats(self, ecb, outfile_name, element_type,tfidf):
@@ -111,7 +168,7 @@ class SimilarityMetrics():
             topic_kl.append(self.divergence(v0, v1))
             topic_cos.append(self.cos_sim(v0, v1))
             if (j % 100 == 0):
-                print(str(j) + "/" + str(len(file_pairs)))
+                print(str(j*1.0/len(file_pairs)))
             j += 1
         print('done')
 
