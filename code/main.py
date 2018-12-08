@@ -6,7 +6,6 @@ from code.K_Means import K_Means
 from scipy import stats
 from sklearn.cluster import AffinityPropagation, SpectralClustering, Birch
 from sklearn import metrics
-import sys
 from time import time
 import pandas as pd
 from code.visualize_results import plot_clustering_results
@@ -32,11 +31,15 @@ do_pairwise = False
 
 for do_subtopic in [True,False]:
     ####################################################################################
-    ####### NOTE: if do_subtopic = True, num_topics = number of topics in ecb above*2
+    ####### NOTE 1: if do_subtopic = True, num_topics = number of topics in ecb above*2
     #######       if False, num_topics = number of topics in ecb above
     #######       -----> if number of topics in ecb above = None, then num_topics = 86 if sub_topic, 43 o.w.
     #######       -----> running across the entire dataset takes quite a while. picking ~two random topics
-    #######       -----> above is recommended to see code functioning.
+    #######       -----> above is recommended to see code functioning. However, see note 2:
+    ####### NOTE 2: if do_pairwise = False, only the clustering experiments are done (avoiding
+    #######         n^2 performance for the pairwise homogeneity metrics), and this runs
+    #######         in a reasonable (~ a few minutes) amount of time. This is the default
+    #######         setting.
     ####################################################################################
     if do_subtopic:
         num_topics = 43
@@ -123,19 +126,6 @@ for do_subtopic in [True,False]:
                                                 title='Within Topic Pairwise Cosine Similarity,\nFull Text Abstraction')
                     sim_metrics.get_cluster_sim(ecb_wrapper, element_types[10], within=False, fname='full_text_sims_across_T.png',
                                                 title='Cross Topic Pairwise Cosine Similarity,\nFull Text Abstraction')
-
-
-
-        #used to represent docs as vectors
-        # ecb_wrapper.compute_doc_template_set()
-
-        # #descriptive statistics for the corpus
-        # sim_metrics = SimilarityMetrics('data/ecb_doc_template_set.txt')
-        # #if you want to use tfidf representations of documents
-        # sim_metrics.make_tfidf_matrix(ecb_wrapper, element_type=element_types[0])
-        # #writes an excel file with avg. KL-divergence and Cosine Similarity per subtopic and topic
-        # sim_metrics.compute_ecb_clustering_stats(ecb=ecb_wrapper, outfile_name=element_types[0] + 'no_tfidf',element_type=element_types[0],tfidf=False)
-
 
 
         '''

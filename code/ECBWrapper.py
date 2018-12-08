@@ -38,7 +38,7 @@ class ECBWrapper():
                     else:
                         self.all_files.append(join(root, f))
         self.annotated = dict()
-        with open(code.Globals.ECB_SENTENCE_FILE ) as f:
+        with open(code.Globals.ECB_SENTENCE_FILE) as f:
             for line in f.readlines()[1:]:
 
                 line = line.split(',')
