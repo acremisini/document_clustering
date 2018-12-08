@@ -1,9 +1,10 @@
-FILE PATHS: 
+-- FILE PATHS: 
 - In Globals.py, please set ECB_DIR to the directory where you've downloaded the ECB+ corpus. 
   -> ie., .../.../ECB+_LREC2014/ECB+
 - Also in Globals.py, set ECB_SENTENCE_FILE exactly to the path where the included csv document is
   -> ie., .../.../ECB+_LREC2014/ECBplus_coreference_sentences.csv
-NOTES:
+  
+-- NOTES:
 - Running the code as is will perform all clustering experiments across the entire corpus, but not
   the word count or homonegenity metrics. 
 - If you would like to see the word count/homonegenity metrics, we recommend that you set the "topics"
