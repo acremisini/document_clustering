@@ -12,5 +12,5 @@
   in order to compute the word count/homogeneity metrics in a reasonable amount of time. This will 
   not produce the same results as in the paper, but setting topics = None (the entire corpus) 
   will take about overnight to compute. Also, please set do_pairwise = True (line 30)
-- The results of all procedures are written do the output directory uploaded to this repo. The results from the paper
-  are included in this directory from our run on the entire dataset. 
+- The results of all procedures are written to the output directory uploaded to this repo. The results from the paper
+  are included in the same output directory, from our run on the entire dataset. 
